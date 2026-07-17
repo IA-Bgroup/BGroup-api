@@ -1,0 +1,54 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bgroup-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "APP_ENV": "development",
+    "LOG_LEVEL": "info",
+    "ALLOWED_ORIGINS": "http://localhost:5173,http://localhost:3000",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bgroup-api-dev",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "env": {
+    "development": {
+      "name": "bgroup-api-dev",
+      "vars": {
+        "APP_ENV": "development",
+        "LOG_LEVEL": "debug",
+        "ALLOWED_ORIGINS": "http://localhost:5173,http://localhost:3000",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "bgroup-api-dev",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+    },
+    "production": {
+      "name": "bgroup-api",
+      "vars": {
+        "APP_ENV": "production",
+        "LOG_LEVEL": "info",
+        "ALLOWED_ORIGINS": "https://replace-with-production-frontend.example.com",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "bgroup-api",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+    },
+  },
+}
