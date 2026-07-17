@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.dev.vars
 *.pem
 *.key
 
@@ -27,6 +28,7 @@ pnpm-debug.log*
 coverage/
 dist/
 build/
+.wrangler/
 .next/
 .nuxt/
 

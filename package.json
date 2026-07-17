@@ -1,0 +1,40 @@
+{
+  "name": "bgroup-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "wrangler dev --local --env development",
+    "deploy:development": "wrangler deploy --env development",
+    "deploy:production": "wrangler deploy --env production",
+    "db:migrate:local": "wrangler d1 migrations apply bgroup-api-dev --local --env development",
+    "db:migrate:remote:development": "wrangler d1 migrations apply bgroup-api-dev --remote --env development",
+    "db:migrate:remote:production": "wrangler d1 migrations apply bgroup-api --remote --env production",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run format:check && npm run lint && npm run type-check && npm test"
+  },
+  "dependencies": {
+    "hono": "^4.9.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260710.1",
+    "@eslint/js": "^9.35.0",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
+    "@typescript-eslint/parser": "^8.43.0",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.9",
+    "wrangler": "^4.40.0"
+  },
+  "packageManager": "npm@10.9.2"
+}

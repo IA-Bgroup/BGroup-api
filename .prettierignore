@@ -1,0 +1,9 @@
+coverage/
+dist/
+migrations/
+node_modules/
+.wrangler/
+outputs/
+web-mock/
+work/
+.github/ISSUE_TEMPLATE/
