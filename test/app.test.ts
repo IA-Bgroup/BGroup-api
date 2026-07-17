@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { HTTPException } from 'hono/http-exception';
 import { app } from '../src/index';
 import type { Bindings } from '../src/types/bindings';
 
@@ -15,6 +16,10 @@ function createBindings(overrides: Partial<Bindings> = {}): Bindings {
   };
 }
 
+app.get('/test/http-exception', () => {
+  throw new HTTPException(400, { message: 'Invalid request' });
+});
+
 describe('BGroup API', () => {
   it('returns a liveness response', async () => {
     const response = await app.request('/health', {}, createBindings());
@@ -25,6 +30,21 @@ describe('BGroup API', () => {
       service: 'bgroup-api',
     });
     expect(response.headers.get('X-Request-Id')).toBeTruthy();
+  });
+
+  it('does not trust a client-supplied cf-ray as the request ID', async () => {
+    const response = await app.request(
+      '/health',
+      { headers: { 'cf-ray': 'client-controlled-value' } },
+      createBindings()
+    );
+
+    const requestId = response.headers.get('X-Request-Id');
+    expect(requestId).toBeTruthy();
+    expect(requestId).not.toBe('client-controlled-value');
+    expect(requestId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    );
   });
 
   it('returns readiness when D1 responds', async () => {
@@ -88,5 +108,13 @@ describe('BGroup API', () => {
     expect(response.status).toBe(404);
     expect(body.error).toBe('NOT_FOUND');
     expect(body.requestId).toBeTruthy();
+  });
+
+  it('preserves the status and response from an HTTPException', async () => {
+    const response = await app.request('/test/http-exception', {}, createBindings());
+
+    expect(response.status).toBe(400);
+    await expect(response.text()).resolves.toBe('Invalid request');
+    expect(response.headers.get('X-Request-Id')).toBeTruthy();
   });
 });

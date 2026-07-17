@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { isAllowedOrigin } from './config/origins';
 import type { Bindings, Variables } from './types/bindings';
@@ -9,7 +10,9 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 app.use('*', secureHeaders());
 
 app.use('*', async (c, next) => {
-  const requestId = c.req.header('cf-ray') ?? crypto.randomUUID();
+  // cf-ray is useful Cloudflare metadata, but it is not used as our
+  // application request ID because request headers are an untrusted input.
+  const requestId = crypto.randomUUID();
   c.set('requestId', requestId);
   try {
     await next();
@@ -87,6 +90,10 @@ app.notFound((c) =>
 );
 
 app.onError((error, c) => {
+  if (error instanceof HTTPException) {
+    return error.getResponse();
+  }
+
   console.error('Unhandled request error', {
     requestId: c.get('requestId'),
     error: error.message,

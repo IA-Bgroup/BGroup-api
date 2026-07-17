@@ -8,6 +8,7 @@ CREATE TABLE users (
   role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('member', 'staff', 'admin')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
   created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  -- UPDATE時はアプリケーション側で unixepoch() を明示的に設定する。
   updated_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
