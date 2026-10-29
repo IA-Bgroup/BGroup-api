@@ -1,0 +1,134 @@
+name: 開発作業・変更・不具合
+description: WBS、依存関係、完了条件と証跡を揃えて作業を登録します。
+title: '[作業] '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        現在の段階は統合先 develop の .github/core-gate.json を確認してください。G3 完了と機能開発の許可が記録されるまで、機能実装には着手しません。
+        承認済み ER 図を基準にします。資料はチーム管理資料 ID で参照し、資料リンク、個人名、日程、秘密情報を公開本文に記入しないでください。
+        担当者と確認者は GitHub アカウントで指定します。空欄の代わりに「なし」とする場合は、不要と判断した理由を書いてください。
+  - type: dropdown
+    id: change_type
+    attributes:
+      label: 変更区分
+      description: foundation は基盤、feature は機能、change は契約・仕様変更、bug は不具合です。
+      options:
+        - foundation
+        - feature
+        - change
+        - bug
+    validations:
+      required: true
+  - type: dropdown
+    id: gate
+    attributes:
+      label: 対象ゲート
+      description: 実際に作業する段階を選択します。FEATURE は G3 完了後のみ着手できます。
+      options:
+        - G0
+        - G1
+        - G2
+        - G3
+        - FEATURE
+    validations:
+      required: true
+  - type: input
+    id: wbs_reference
+    attributes:
+      label: WBS参照
+      description: チーム管理 WBS の資料 ID・版 ID・項目 ID を記載します。日程や資料リンクは転記しません。
+      placeholder: WBS資料ID / 版ID / 項目ID
+    validations:
+      required: true
+  - type: textarea
+    id: purpose_scope
+    attributes:
+      label: 目的・成果物・対象範囲
+      description: 完成させる成果物と今回含めない作業を記載します。bug は期待する動作と実際の動作も記載してください。
+      placeholder: |
+        目的:
+        成果物:
+        対象範囲:
+        対象外:
+    validations:
+      required: true
+  - type: textarea
+    id: specification_reference
+    attributes:
+      label: 仕様参照
+      description: 承認済み ER 図、API 契約、状態遷移などのチーム管理資料 ID・版 ID を記載します。未確定事項は区別してください。
+      placeholder: |
+        基準資料ID・版ID:
+        関連する契約:
+        未確定事項（なければ理由付きで記載）:
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依存Issue・着手条件
+      description: 先行 Issue は行ごとに Depends on #番号 と記載します。依存なしは None の行と理由を書き、ゲートを含む着手条件も記載します。
+      placeholder: |
+        Depends on #123
+        着手条件:
+        未解決の阻害事項:
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: 完了条件
+      description: レビュアーが合否を判断できる条件をチェックリストで記載します。「実装する」「確認する」だけでは完了条件になりません。
+      placeholder: |
+        - [ ] 入力・操作と期待結果を記載
+        - [ ] 異常系と期待結果を記載
+        - [ ] 関連仕様・テストが実装と一致している
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: DB・API・権限・状態への影響
+      description: 変更前後、影響する Issue と互換性を記載します。change は移行・復旧方法も必要です。影響なしの場合は根拠を書いてください。
+      placeholder: |
+        DB:
+        API:
+        認証・権限:
+        業務状態・状態遷移:
+        影響するIssue:
+        移行・復旧方法:
+    validations:
+      required: true
+  - type: textarea
+    id: verification_evidence
+    attributes:
+      label: 検証方法・証跡
+      description: 作成時は確認手順と証跡の保存先 ID、完了時は実行結果と対象 commit を記載します。bug は再現手順・環境・再現する版も必須です。
+      placeholder: |
+        検証手順・コマンド:
+        検証環境:
+        期待結果:
+        証跡の保存先ID:
+        完了時に追記する結果・対象commit:
+    validations:
+      required: true
+  - type: input
+    id: ownership
+    attributes:
+      label: 担当・確認者
+      description: GitHub アカウントで担当者と別の確認者を指定してください。実名は記載しません。未割当の Issue は着手不可です。
+      placeholder: 担当 @account / 確認 @reviewer
+    validations:
+      required: true
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: 登録前の確認
+      options:
+        - label: 既存 Issue と重複していないことを確認した
+          required: true
+        - label: 承認済み資料と試作上の仮定を区別し、公開本文に資料リンク・個人名・日程・秘密情報を含めていない
+          required: true
+        - label: 着手には依存 Issue と段階ゲートの完了が必要であり、Issue 登録だけでは着手許可にならないことを確認した
+          required: true

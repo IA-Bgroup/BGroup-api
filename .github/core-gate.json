@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "gates": {
+    "G0": false,
+    "G1": false,
+    "G2": false,
+    "G3": false
+  },
+  "featureDevelopmentAllowed": false
+}
