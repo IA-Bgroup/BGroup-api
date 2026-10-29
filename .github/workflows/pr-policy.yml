@@ -1,0 +1,109 @@
+name: PR policy
+
+on:
+  pull_request_target:
+    branches: [main, develop]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number to recheck after an Issue changes
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  policy:
+    name: PR policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve trusted base
+        id: base
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const number = context.payload.pull_request?.number ?? Number(context.payload.inputs?.pr);
+            if (!Number.isSafeInteger(number) || number < 1) throw new Error('Invalid PR number');
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: number });
+            if (pr.base.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+                !['main', 'develop'].includes(pr.base.ref)) throw new Error('Unexpected PR base');
+            core.setOutput('sha', pr.base.sha);
+            core.setOutput('head', pr.head.sha);
+            core.setOutput('number', number);
+
+      # Only trusted base code is checked out. Never run or install PR head code here.
+      - name: Checkout trusted base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.base.outputs.sha }}
+          persist-credentials: false
+
+      - name: Validate Issue, dependencies and core gate
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.base.outputs.number }}
+          EXPECTED_BASE_SHA: ${{ steps.base.outputs.sha }}
+          EXPECTED_HEAD_SHA: ${{ steps.base.outputs.head }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const policy = require(`${process.env.GITHUB_WORKSPACE}/scripts/pr-policy.cjs`);
+            let gateConfig = JSON.parse(fs.readFileSync('.github/core-gate.json', 'utf8'));
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo, pull_number: Number(process.env.PR_NUMBER)
+            });
+            if (pr.base.sha !== process.env.EXPECTED_BASE_SHA || pr.head.sha !== process.env.EXPECTED_HEAD_SHA) {
+              throw new Error('統合先が更新されました。PR policyを再実行してください。');
+            }
+            const promotion = pr.base.ref === 'main';
+            let developSha;
+            if (promotion) {
+              const { data: develop } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+              developSha = develop.commit.sha;
+              const promotionErrors = policy.validatePromotion({
+                baseBranch: pr.base.ref, headBranch: pr.head.ref,
+                repository: `${context.repo.owner}/${context.repo.repo}`,
+                headRepository: pr.head.repo?.full_name, headSha: pr.head.sha, developSha
+              });
+              if (promotionErrors.length) throw new Error(promotionErrors.join('\n'));
+              const { data: promotedGate } = await github.rest.repos.getContent({
+                ...context.repo, path: '.github/core-gate.json', ref: developSha
+              });
+              if (promotedGate.type !== 'file' || !promotedGate.content) throw new Error('Promotion gate is missing');
+              gateConfig = JSON.parse(Buffer.from(promotedGate.content, 'base64').toString('utf8'));
+            }
+            const issueNumber = policy.relatedIssueNumber(pr.body || '');
+            const { data: issue } = await github.rest.issues.get({ ...context.repo, issue_number: issueNumber });
+            const dependencyErrors = [];
+            const ids = policy.dependencies(policy.sections(issue.body || '')['依存Issue・着手条件'],
+              'Issue依存関係', dependencyErrors);
+            const dependencyIssues = await Promise.all(ids.map(async (issue_number) => {
+              try { return (await github.rest.issues.get({ ...context.repo, issue_number })).data; }
+              catch (error) { if (error.status === 404) return { number: issue_number }; throw error; }
+            }));
+            const files = await github.paginate(github.rest.pulls.listFiles, { ...context.repo, pull_number: pr.number, per_page: 100 });
+            if (files.length !== pr.changed_files) throw new Error('変更ファイル一覧が完全ではありません');
+            let proposedGateConfig;
+            if (files.some(file => file.filename === '.github/core-gate.json' && file.status !== 'removed')) {
+              const { data: proposedFile } = await github.rest.repos.getContent({
+                owner: pr.head.repo.owner.login, repo: pr.head.repo.name, path: '.github/core-gate.json', ref: pr.head.sha
+              });
+              if (proposedFile.type !== 'file' || !proposedFile.content) throw new Error('Invalid proposed core gate');
+              proposedGateConfig = JSON.parse(Buffer.from(proposedFile.content, 'base64').toString('utf8'));
+            }
+            const errors = [...policy.validatePolicy({ body: pr.body || '', issue, dependencyIssues, gateConfig, enforceApiStages: !promotion }),
+              ...(promotion ? [] : policy.validateApiChanges({ body: pr.body || '', files, gateConfig, proposedGateConfig }))];
+            const { data: after } = await github.rest.pulls.get({ ...context.repo, pull_number: pr.number });
+            if (after.base.sha !== pr.base.sha || after.head.sha !== pr.head.sha || after.body !== pr.body) {
+              throw new Error('検査中にPRが更新されました。再実行してください。');
+            }
+            if (promotion) {
+              const { data: developAfter } = await github.rest.repos.getBranch({ ...context.repo, branch: 'develop' });
+              if (developAfter.commit.sha !== developSha) throw new Error('developが更新されました。昇格PRを再検査してください');
+            }
+            if (errors.length) core.setFailed(errors.join('\n'));
+            else core.info('PR metadata, dependency completion and trusted core gate passed.');
