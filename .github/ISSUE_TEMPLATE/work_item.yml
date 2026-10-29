@@ -117,7 +117,7 @@ body:
     id: ownership
     attributes:
       label: 担当・確認者
-      description: GitHub アカウントで担当者と別の確認者を指定してください。実名は記載しません。未割当の Issue は着手不可です。
+      description: 確認者は CONTRIBUTING.md に従い、書き込み権限のあるチームメンバー全員から担当者以外を指定してください。GitHub アカウントを使い、実名は記載しません。未割当の Issue は着手不可です。
       placeholder: 担当 @account / 確認 @reviewer
     validations:
       required: true
