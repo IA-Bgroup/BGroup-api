@@ -21,8 +21,9 @@ Cloudflare Workers / Hono / TypeScript / D1 で構成しています。
 ```bash
 git clone https://github.com/IA-Bgroup/BGroup-api.git
 cd BGroup-api
+git switch develop
 nvm use
-npm install
+npm ci
 cp .env.example .dev.vars
 ```
 
@@ -85,13 +86,24 @@ npm run deploy:development
 
 ## ブランチ運用
 
+現在は **G0（開発基盤の整備）** です。業務機能の実装開始は、承認済み設計に沿った
+DB・共通API・コア結合の検証と別メンバーによる再現を終えた後です。
+段階の完了条件は [開発手順](docs/development-workflow.md)、判定の正本は
+統合先 `develop` の [.github/core-gate.json](.github/core-gate.json) にあります。
+画面側は別リポジトリ [BGroup-web](https://github.com/IA-Bgroup/BGroup-web) で管理します。
+
+`npm run check` は整形・静的解析・型・テストに加え、Worker の dry-run build と
+空の一時ローカル D1 への migration 適用・再適用・整合性検査を実行します。
+`npm run db:verify` は既存のローカルDBや共有DBを変更しません。
+現行 migration は初期環境用であり、承認済みER全体の実装完了を意味しません。
+
 - `main`: 常にデプロイ可能な状態
 - `develop`: 開発内容の統合先
 - `feature/<issue番号>-<概要>`: 各機能の作業ブランチ
 - `fix/<issue番号>-<概要>`: 不具合修正ブランチ
 
 作業開始時に `develop` からブランチを作り、Pull Requestで `develop` に取り込みます。
-夏休み中も作業単位を小さく保ち、DB変更には必ず新しいマイグレーションを追加してください。
+作業単位を小さく保ち、DB変更には必ず新しいマイグレーションを追加してください。
 
 ## Contributing / Security
 
